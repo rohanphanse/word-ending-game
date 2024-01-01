@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Word Ending Game</title>
+    <link rel = "stylesheet" href = "/styles/global.css" />
+    <link rel = "stylesheet" href = "/styles/index.css" />
+    <script src="/socket.io/socket.io.js"></script>
+    <script src = "/scripts/index.js"></script>
+</head>
+<body>
+    <div class = "center-page">
+        <div id = "container">
+            <h1>WORD<span class = "gray-text">ENDING</span>GAME</h1>
+            <h2 class = "author">
+                By:
+                <a href = "https://github.com/rohanphanse" target = "_blank"> Rohan Phanse<img class = "github-icon" src = "/icons/github.svg" /></a>
+            </h2>
+            <div class = "thin-text" id = "welcome-message">Select gamemode:</div>
+            <div class = "gamemodes">
+                <div class = "gamemode gamemode-selected" id = "gamemode-1d">1D</div>
+                <div class = "gamemode" id = "gamemode-2d">2D</div>
+            </div>
+            <div id = "invite-link-section">
+                Invite link: 
+                <input id = "invite-link" value="http://localhost:3000?g=" readonly />
+                <button id = "copy-invite-link">Copy</button>
+            </div>
+            <div class = "enter-name-container">
+                Enter name:
+                <input id = "enter-name" maxlength="20"/>
+            </div>
+            <button id = "enter-lobby">Create new game</button>
+            <div id = "lobby-section">
+                <div class = "thin-text" id = "lobby-text">Lobby:</div>
+                <div id = "lobby"></div>
+            </div>
+            <button id = "start-game">Start game</button>
+        </div>
+    </div>
+</body>
+</html>
