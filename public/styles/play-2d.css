@@ -1,0 +1,152 @@
+#container {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+
+#letter-squares {
+    display: flex;
+    margin-bottom: 20px;
+}
+
+.letter-square, .candidate-letter-square {
+    font-weight: 500;
+    font-size: 24px;
+    width: 50px;
+    height: 50px;
+    padding: 7px 10px;
+    border: 4px solid ;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin: 0 5px;
+    cursor: pointer;
+    transition-duration: 0.2s;
+}
+
+.letter-square {
+    border: 4px solid rgb(193, 193, 193);
+}
+
+.candidate-letter-square {
+    border: 4px dotted rgb(193, 193, 193);
+}
+
+#lobby {
+    display: flex;
+    margin-top: 5px;
+    margin-bottom: 20px;
+}
+
+.avatar {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-left: 10px;
+    margin-right: 10px;
+}
+
+.avatar-icon {
+    width: 50px;
+    height: 50px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border-radius: 50%;
+    margin-bottom: 3px;
+    font-weight: 500;
+    font-size: 24px;
+}
+
+#turn-text {
+    font-weight: 300;
+    margin-bottom: 5px;
+}
+
+#game-buttons {
+    display: flex;
+}
+
+#game-buttons * {
+    margin: 0 3px;
+}
+
+#chat-container {
+    display: flex;
+    flex-direction: column;
+    width: 250px;
+    border: 1px solid rgb(193, 193, 193);
+    border-radius: 8px;
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    right: 50px;
+}
+
+#chat-header {
+    border-bottom: 1px solid rgb(193, 193, 193); 
+    padding: 5px;
+}
+
+#messages {
+    display: flex;
+    flex-direction: column;
+    padding: 10px 10px;
+    overflow: auto;
+    height: 300px;
+    scroll-behavior: smooth;
+}
+
+.message, .message-below {
+    width: fit-content;
+    padding: 1px 5px;
+    word-break: break-all;
+}
+
+.message {
+    margin-top: 5px;
+}
+
+.message-meta {
+    display: flex;
+    align-items: center;
+    margin-bottom: 3px;
+}
+
+.message-username {
+    font-weight: 600;
+    margin-right: 6px;
+}
+
+.message-time {
+    background-color: rgb(240, 240, 240);
+    padding: 1px 3px;
+    border-radius: 2px;
+    font-size: 0.7rem;
+    font-weight: 400;
+    margin-bottom: 1px;
+}
+
+.message-text {
+    border-radius: 4px;
+    width: fit-content;
+    background-color: rgb(240, 240, 240);
+    padding: 3px 8px;
+}
+
+#message-form {
+    border-top: 1px solid rgb(193, 193, 193);
+    display: flex;
+    align-items: center;
+}
+
+#message-input {
+    height: 30px;
+    width: calc(100% - 50px);
+    margin-left: 7px;
+    outline: none;
+    border: none;
+    border-right: 1px solid rgb(193, 193, 193);
+    font-size: 1rem;
+}

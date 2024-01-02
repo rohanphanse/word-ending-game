@@ -23,7 +23,6 @@ document.addEventListener("DOMContentLoaded", () => {
     socket.on("username-success", () => {
         usernameForm.style.display = "none"
         messageForm.style.display = "flex"
-        console.log("HELLEO")
     })
 
     // Message from server

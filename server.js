@@ -3,11 +3,10 @@ const http = require("http")
 const socketio = require("socket.io")
 const BadWordsFilter = require("bad-words")
 const path = require("path")
-const fs = require("fs/promises")
-const english_words = require("check-if-word")("en")
+const fs = require("fs")
 
 const app = express()
-const url = "https://word-game.roar123.repl.co"
+const url = "http://localhost:3000"
 const server = http.createServer(app)
 const io = socketio(server, {
     cors: {
@@ -17,6 +16,12 @@ const io = socketio(server, {
 const badWordsFilter = new BadWordsFilter()
 
 app.use(express.static("public"))
+
+const word_strings = fs.readFileSync("data/words.txt", "utf8").split("\r\n")
+const words = {}
+for (const word of word_strings) {
+    if (word.length > 2) words[word] = true
+}
 
 const id_to_name = {}
 const game_hosts = {}
@@ -73,6 +78,7 @@ io.on("connection", (socket) => {
     socket.on("join_1d_game", async (name, _game_id) => {
         console.log("join_1d_game", name, _game_id)
         game_id = _game_id
+        if (!game_players[game_id]) return
         socket_id = socket.id
         socket.join(game_id)
         id_to_name[socket.id] = name
@@ -107,12 +113,29 @@ io.on("connection", (socket) => {
         if (position !== "front" && position !== "back") return
         console.log("valid position")
         letter = letter.toUpperCase()
+        console.log("waiting...")
         if (position === "front") {
-            if (game_words[game_id].length > 2 && english_words.check((letter + game_words[game_id]).toLowerCase())) return
+            if (game_words[game_id].length > 2 && words[(letter + game_words[game_id]).toLowerCase()]) {
+                console.log("check fail!")
+                socket.emit("message", {
+                    username: "GameBot",
+                    time: Date.now(),
+                    text: `${id_to_name[socket_id]}, ${letter + game_words[game_id]} is a word! Choose another letter.`
+                })
+                return
+            }
             game_words[game_id] = letter + game_words[game_id]
         }
         if (position === "back") {
-            if (game_words[game_id].length > 2 && english_words.check((game_words[game_id] + letter).toLowerCase())) return
+            if (game_words[game_id].length > 2 && words[(game_words[game_id] + letter).toLowerCase()]) {
+                console.log("check fail!")
+                socket.emit("message", {
+                    username: "GameBot",
+                    time: Date.now(),
+                    text: `${id_to_name[socket_id]}, ${game_words[game_id] + letter} is a word! Choose another letter.`
+                })
+                return
+            }
             game_words[game_id] = game_words[game_id] + letter
         }
         io.to(game_id).emit("word", game_words[game_id])
@@ -143,7 +166,7 @@ io.on("connection", (socket) => {
         challenge_word = challenge_word.toUpperCase()
         const current_player = game_players[game_id][game_turns[game_id] % game_players[game_id].length]
         const last_player = id_to_name[last_players[game_id]]
-        if (english_words.check(challenge_word) && challenge_word.includes(game_words[game_id])) {
+        if (words[challenge_word] && challenge_word.includes(game_words[game_id])) {
             io.to(game_id).emit("challenge_outcome", `Since ${last_player}'s word '${challenge_word}' is in the English dictionary and contains the letters played '${game_words[game_id]}, ${current_player}' challenge of ${last_player} was unsuccessful.`)
         } else {
             io.to(game_id).emit("challenge_outcome", `Since ${last_player}'s word '${challenge_word}' is either not in the English dictionary or does not contain the letters played '${game_words[game_id]}, ${current_player}' challenge of ${last_player} was successful.`)
@@ -151,6 +174,14 @@ io.on("connection", (socket) => {
     })
 
     socket.on("message", (message) => {
+        if (message.length > 200) {
+            socket.emit("message", {
+                username: "GameBot",
+                time: Date.now(),
+                text: `${id_to_name[socket_id]}, your message was too long and could not be sent.`
+            })
+            return
+        }
         io.to(game_id).emit("message", {
             username: id_to_name[socket.id],
             time: Date.now(),

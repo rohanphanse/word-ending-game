@@ -12,7 +12,16 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // Data
     let turn = 0
-    const url = "https://word-game.roar123.repl.co"
+    const url = "http://localhost:3000"
+
+    let letterSquareListener = (event) => {
+        console.log(event.key)
+        if (event.key === "Backspace") {
+            event.target.innerText = ""
+        } else if (event.target.innerText.length == 1) {
+            event.preventDefault()
+        }
+    }
 
     // Web sockets
     const socket = io(url) 
@@ -60,6 +69,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 if (word[i] === " ") {
                     letterSquare.classList.add("candidate-letter-square")
                     letterSquare.contentEditable = "true"
+                    letterSquare.addEventListener("keydown", letterSquareListener)
                 } else {
                     letterSquare.classList.add("letter-square")
                     letterSquare.innerText = word[i]
@@ -123,11 +133,14 @@ document.addEventListener("DOMContentLoaded", () => {
     })
 
     placeLetter.addEventListener("click", () => {
-        if (letterSquares.children[0].innerText.length === 1) {
-            socket.emit("play_letter_1d", letterSquares.children[0].innerText.toUpperCase(), "front")
+        const first = letterSquares.children[0]
+        const last = letterSquares.children[letterSquares.children.length - 1]
+        if (first.innerText.length == 1 && last.innerText.length == 1 && first !== last) return
+        if (first.innerText.length === 1) {
+            socket.emit("play_letter_1d", first.innerText.toUpperCase(), "front")
             console.log("front")
-        } else if (letterSquares.children[letterSquares.children.length - 1].innerText.length === 1) {
-            socket.emit("play_letter_1d", letterSquares.children[letterSquares.children.length - 1].innerText.toUpperCase(), "back")
+        } else if (last.innerText.length === 1) {
+            socket.emit("play_letter_1d", last.innerText.toUpperCase(), "back")
             console.log("back")
         }
     })
