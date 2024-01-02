@@ -90,9 +90,6 @@ document.addEventListener("DOMContentLoaded", () => {
                 clearInterval(wait_interval)
                 placeLetter.style.display = "flex"
                 challengeButton.style.display = "flex"
-                if (turn === 0) {
-                    challengeButton.style.display = "none"
-                }
                 placeLetter.innerText = "Place letter (60s)"
                 const start = Date.now()
                 interval = setInterval(() => {
