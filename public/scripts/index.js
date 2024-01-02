@@ -22,7 +22,6 @@ document.addEventListener("DOMContentLoaded", () => {
     // Data
     let is_host = true
     let game_type = "1d"
-    const url = "http://localhost:3000"
 
     gamemode1D.addEventListener("click", () => {
         gamemode1D.classList.add("gamemode-selected")

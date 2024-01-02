@@ -6,7 +6,8 @@ const path = require("path")
 const fs = require("fs")
 
 const app = express()
-const url = "http://localhost:3000"
+const url = "https://word-ending-game.roar123.repl.co"
+// const url = "http://localhost:3000"
 const server = http.createServer(app)
 const io = socketio(server, {
     cors: {
@@ -166,7 +167,7 @@ io.on("connection", (socket) => {
         challenge_word = challenge_word.toUpperCase()
         const current_player = game_players[game_id][game_turns[game_id] % game_players[game_id].length]
         const last_player = id_to_name[last_players[game_id]]
-        if (words[challenge_word] && challenge_word.includes(game_words[game_id])) {
+        if (words[challenge_word.toLowerCase()] && challenge_word.includes(game_words[game_id])) {
             io.to(game_id).emit("challenge_outcome", `Since ${last_player}'s word '${challenge_word}' is in the English dictionary and contains the letters played '${game_words[game_id]}, ${current_player}' challenge of ${last_player} was unsuccessful.`)
         } else {
             io.to(game_id).emit("challenge_outcome", `Since ${last_player}'s word '${challenge_word}' is either not in the English dictionary or does not contain the letters played '${game_words[game_id]}, ${current_player}' challenge of ${last_player} was successful.`)

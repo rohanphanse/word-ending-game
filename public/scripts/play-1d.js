@@ -12,7 +12,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // Data
     let turn = 0
-    const url = "http://localhost:3000"
 
     let letterSquareListener = (event) => {
         console.log(event.key)

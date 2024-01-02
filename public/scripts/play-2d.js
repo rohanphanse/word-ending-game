@@ -12,7 +12,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // Data
     let turn = 0
-    const url = "http://localhost:3000"
 
     // Web sockets
     const socket = io(url) 
