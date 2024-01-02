@@ -12,6 +12,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // Data
     let turn = 0
+    let challenge = false
 
     let letterSquareListener = (event) => {
         console.log(event.key)
@@ -116,17 +117,25 @@ document.addEventListener("DOMContentLoaded", () => {
         })
 
         socket.on("challenge_word", () => {
-            const challenge_word = prompt(`You have been challenged by ${players[turn % players.length]}! The current letters are '${game_word}.' Enter your intended word here:`)
-            socket.emit("challenge_word_response", challenge_word)
+            console.log("challenge_word")
+            renderMessage({
+                username: "GameBot",
+                time: Date.now(),
+                text: `You have been challenged by ${players[turn % players.length]}! The current letters are '${game_word}.' Enter your intended word here:`
+            })
+            challenge = true
         })
 
         socket.on("challenge_outcome", (outcome) => {
-            alert(outcome)
+            renderMessage({
+                username: "GameBot",
+                time: Date.now(),
+                text: outcome
+            })
         }) 
 
          // Message from server
         socket.on("message", (message) => {
-            console.log(message)
             renderMessage(message)
         })
     })
@@ -155,6 +164,10 @@ document.addEventListener("DOMContentLoaded", () => {
         event.preventDefault()
         const message = messageInput.value.trim()
         if (message) {
+            if (challenge) {
+                socket.emit("challenge_word_response", message)
+                return
+            }
             socket.emit("message", message)
             messageInput.value = ""
         }
