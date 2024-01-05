@@ -6,7 +6,7 @@ const path = require("path")
 const fs = require("fs")
 
 const app = express()
-const url = "https://word-ending-game.roar123.repl.co"
+const url = "https://word-ending-game.onrender.com"
 // const url = "http://localhost:3000"
 const server = http.createServer(app)
 const io = socketio(server, {
