@@ -13,9 +13,10 @@ document.addEventListener("DOMContentLoaded", () => {
     // Data
     let turn = 0
     let challenge = false
+    let game_over = false
+    let game_host = ""
 
     let letterSquareListener = (event) => {
-        console.log(event.key)
         if (event.key === "Backspace") {
             event.target.innerText = ""
         } else if (event.target.innerText.length == 1) {
@@ -25,18 +26,16 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // Web sockets
     const socket = io(url) 
+    const name = sessionStorage.getItem("name")
+    const game_id = new URLSearchParams(window.location.search).get("g")
     socket.on("connect", () => {
-        const name = sessionStorage.getItem("name")
-        const game_id = new URLSearchParams(window.location.search).get("g")
         socket.emit("join_1d_game", name, game_id)
-        console.log(socket.id)
         let players
 
         socket.on("players", (_players) => {
             players = _players
             let last_color = null
             lobby.innerHTML = ""
-            console.log("game_players", players)
             for (const player of players) {
                 const avatar = document.createElement("div")
                 avatar.classList.add("avatar")
@@ -89,7 +88,11 @@ document.addEventListener("DOMContentLoaded", () => {
             if (name === players[turn % players.length]) {
                 clearInterval(wait_interval)
                 placeLetter.style.display = "flex"
-                challengeButton.style.display = "flex"
+                if (turn >= 2) {
+                    challengeButton.style.display = "flex"
+                } else {
+                    challengeButton.style.display = "none"
+                }
                 placeLetter.innerText = "Place letter (60s)"
                 const start = Date.now()
                 interval = setInterval(() => {
@@ -114,7 +117,6 @@ document.addEventListener("DOMContentLoaded", () => {
         })
 
         socket.on("challenge_word", () => {
-            console.log("challenge_word")
             renderMessage({
                 username: "GameBot",
                 time: Date.now(),
@@ -135,18 +137,54 @@ document.addEventListener("DOMContentLoaded", () => {
         socket.on("message", (message) => {
             renderMessage(message)
         })
+
+        socket.on("game_over", (game_points, loser, _game_host) => {
+            game_over = true
+            game_host = _game_host
+            sorted_players = Object.keys(game_points)
+            sorted_players.sort((a, b) => {
+                return game_points[b] - game_points[a]
+            })
+            let message = "Game over! Current standings:\n"
+            for (let i = 0; i < sorted_players.length; i++) {
+                message += `${i + 1}. ${sorted_players[i]} - ${game_points[sorted_players[i]]} points `
+                if (sorted_players[i] !== loser) {
+                    message += "(+1 point)"
+                }
+                message += "\n"
+            }
+            renderMessage({
+                username: "GameBot",
+                time: Date.now(),
+                text: message
+            })
+            if (game_host === name) {
+                renderMessage({
+                    username: "GameBot",
+                    time: Date.now(),
+                    text: `Does your group want to play another game? Enter '/start' to start the next game.`
+                })
+            } else {
+                renderMessage({
+                    username: "GameBot",
+                    time: Date.now(),
+                    text: `Want to play another game? Ask the host '${game_host}' to enter '/start' to start the next game.`
+                })
+            }
+            challengeButton.style.display = "none"
+            placeLetter.style.display = "none"
+        })
     })
 
     placeLetter.addEventListener("click", () => {
+        console.log("placeLetter")
         const first = letterSquares.children[0]
         const last = letterSquares.children[letterSquares.children.length - 1]
         if (first.innerText.length == 1 && last.innerText.length == 1 && first !== last) return
         if (first.innerText.length === 1) {
             socket.emit("play_letter_1d", first.innerText.toUpperCase(), "front")
-            console.log("front")
         } else if (last.innerText.length === 1) {
             socket.emit("play_letter_1d", last.innerText.toUpperCase(), "back")
-            console.log("back")
         }
     })
 
@@ -163,9 +201,12 @@ document.addEventListener("DOMContentLoaded", () => {
         if (message) {
             if (challenge) {
                 socket.emit("challenge_word_response", message)
-                return
+                challenge = false
+            } else if (game_over && name === game_host && message.toLowerCase() === "/start") {
+                socket.emit("next_game")
+            } else {
+                socket.emit("message", message)
             }
-            socket.emit("message", message)
             messageInput.value = ""
         }
     })
@@ -174,7 +215,6 @@ document.addEventListener("DOMContentLoaded", () => {
     let last_rendered_username = ""
     let last_rendered_time = null
     function renderMessage(message) {
-        console.log(message)
         const messageElement = document.createElement("div")
         messageElement.className = "message"
         const meta = document.createElement("div")
@@ -188,7 +228,6 @@ document.addEventListener("DOMContentLoaded", () => {
         const text = document.createElement("div")
         text.innerText = message.text
         text.className = "message-text"
-        console.log(formatTime(last_rendered_time), formatTime(message.time))
         if (last_rendered_time === null || last_rendered_username !== message.username || formatTime(last_rendered_time) !== formatTime(message.time)) {
             meta.appendChild(username)
             meta.appendChild(time)

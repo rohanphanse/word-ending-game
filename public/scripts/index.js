@@ -22,6 +22,19 @@ document.addEventListener("DOMContentLoaded", () => {
     // Data
     let is_host = true
     let game_type = "1d"
+    let game_players = []
+
+    function name_already_used(name) {
+        for (const player of game_players) {
+            if (name === player) {
+                return true
+            }
+            if (player.includes(" (host)") && name === player.slice(player.length - " (host)".length)) {
+                return true
+            }
+        }
+        return false
+    }
 
     gamemode1D.addEventListener("click", () => {
         gamemode1D.classList.add("gamemode-selected")
@@ -32,15 +45,8 @@ document.addEventListener("DOMContentLoaded", () => {
         gamemode1D.classList.remove("gamemode-selected")
     })
 
-    const urlParams = new URLSearchParams(window.location.search)
-    if (!urlParams.has("g")) {
-        const id = generateID()
-        window.location.href = `${url}/?g=${id}` 
-    }
-    inviteLink.value = window.location.href
-
     // Web sockets
-    const game_id = new URLSearchParams(window.location.search).get("g")
+    let game_id = new URLSearchParams(window.location.search).get("g") || ""
     const socket = io(url)
     socket.on("connect", () => {
         socket.emit("request_welcome", game_id)
@@ -52,6 +58,7 @@ document.addEventListener("DOMContentLoaded", () => {
             if (players.length) {
                 lobbyText.style.display = "flex"
             }
+            game_players = players
             for (const player of players) {
                 const avatar = document.createElement("div")
                 avatar.classList.add("avatar")
@@ -75,10 +82,14 @@ document.addEventListener("DOMContentLoaded", () => {
         })
     })
 
+    socket.on("game_id", (_game_id) => {
+        game_id = _game_id
+        inviteLink.value = `${url}/?g=${game_id}`
+    })
+
     socket.on("welcome", (game_host, _game_type) => {
         is_host = false
         game_type = _game_type
-        console.log("wgt", game_type)
         welcomeMessage.innerText = `Welcome to game '${game_id}' hosted by ${game_host}!`
         enterLobby.innerText = "Join lobby"
         gamemode1D.style.display = "none"
@@ -104,10 +115,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
     enterLobby.addEventListener("click", () => {
         const name = enterName.value
-        if (name.length) {
+        if (name.length > 0 && name.length < 20 && !name_already_used(name) && !name.includes("(host)")) {
             const game_id = new URLSearchParams(window.location.search).get("g")
             if (is_host) game_type = gamemode1D.classList.contains("gamemode-selected") ? "1d" : "2d"
-            console.log("gt", game_type)
             socket.emit("join_game", name, game_id, game_type)
             enterLobby.style.display = "none"
             enterName.disabled = true
@@ -126,18 +136,3 @@ document.addEventListener("DOMContentLoaded", () => {
         window.location.href = `${url}/play-${game_type}/?g=${game_id}`
     })
 })
-
-// Generate random ID with 6 characters
-function generateID() {
-    let id = ""
-    for (let n = 0; n < 6; n++) {
-        // Character
-        if (Math.random() > 0.5) {
-            id += String.fromCharCode(97 + Math.floor(26 * Math.random()))
-        // Number
-        } else {
-            id += Math.floor(Math.random() * 10)
-        }
-    }
-    return id
-}
