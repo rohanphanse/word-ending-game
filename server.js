@@ -6,10 +6,11 @@ const path = require("path")
 const fs = require("fs")
 require("dotenv").config()
 
+const Game = require("./game.js")
+
 // Initialize server and websocket
 const PORT = process.env.PORT || 3000
 const URL = process.env.URL || "https://word-ending-game.onrender.com"
-// const URL = process.env.URL || "http://localhost:3000"
 const app = express()
 const server = http.createServer(app)
 const io = socketio(server, {
@@ -21,112 +22,119 @@ app.use(express.static("public"))
 
 // Prepare word list
 const word_strings = fs.readFileSync("data/words.txt", "utf8").split("\r\n")
-const words = {}
+const words = new Set()
 for (const word of word_strings) {
-    if (word.length > 2) words[word] = true
+    if (word.length > 2) {
+        words.add(word)
+    }
 }
 
 // Game data
-const id_to_name = {}
-const game_ids = {}
-const game_hosts = {}
-const game_types = {}
-const game_players = {}
-const game_turns = {}
-const game_words = {}
-const last_players = {}
-const game_points = {}
+const games = {}
+const game_types = ["1d", "2d"]
+
 io.on("connection", (socket) => {
     let game_id
-    let socket_id
+    let lobby_id 
+    let player_id
+    let player_name 
+    let game
     
     socket.on("join_game", async (name, _game_id, _game_type) => {
-        if (!game_ids[_game_id]) {
+        if (!game_types.includes(_game_type)) return
+        // Create new game or join existing game
+        if (!games[_game_id]) {
             game_id = generateID()
-            while (game_ids[game_id]) {
+            while (games[game_id]) {
                 game_id = generateID()
             }
-            game_ids[game_id] = true
-            game_players[game_id] = []
+            games[game_id] = new Game(game_id)
             socket.emit("game_id", game_id)
         } else {
             game_id = _game_id
         }
-        socket_id = socket.id
+        lobby_id = socket.id
+        game = games[game_id]
         
         // Set game type
-        if (!game_types[game_id]) {
-            game_types[game_id] = _game_type
+        if (!game.game_type) {
+            game.game_type = _game_type
         }
         // Check name and add player to game
-        if (name.length > 0 && name.length < 20 && !game_players[game_id].includes(name) && !name.includes("(host)")) {
-            id_to_name[socket.id] = name
+        if (name.length > 0 && name.length < 20) {
+            let success = game.add_player(name, lobby_id)
+            if (!success) return
             socket.join(game_id)
-            // Add first player as host
-            if (!game_hosts[game_id]) {
-                game_hosts[game_id] = socket.id
+            // Add host
+            if (!game.host) {
+                game.host = lobby_id
             }
             // Update players 
-            io.to(game_id).emit("players", (await io.in(game_id).fetchSockets()).map((socket) => {
-                return id_to_name[socket.id] + (game_hosts[game_id] === socket.id ? " (host)" : "")
-            }))
-            game_players[game_id] = (await io.in(game_id).fetchSockets()).map((socket) => id_to_name[socket.id])
+            io.to(game_id).emit("players", game.get_player_names(), game.host_name)
         }
     })
 
     // Request welcome
     socket.on("request_welcome", async (_game_id) => {
+        if (!games[_game_id]) return
         game_id = _game_id
-        if (game_hosts[_game_id] && game_types[game_id]) {
-            socket.emit("welcome", id_to_name[game_hosts[game_id]], game_types[game_id])
-            socket.emit("players", [...(await io.in(game_id).fetchSockets()).map((socket) => game_hosts[game_id] === socket.id ? id_to_name[socket.id] + " (host)" : id_to_name[socket.id])])
+        game = games[game_id]
+        if (game.host && game.game_type) {
+            socket.emit("welcome", game.get_player_by_lobby_id(game.host).name, game.game_type)
+            socket.emit("players", game.get_player_names(), game.host_name)
         }
     })
 
     socket.on("disconnect", async () => {
-        // Remove player ID
-        if (socket_id === game_hosts[game_id]) {
-            game_hosts[game_id] = id_to_name[socket_id]
+        if (!game) return
+        // Remove player 
+        if (!game.get_player_by_lobby_id(lobby_id).save) {
+            game.remove_player_by_lobby_id(lobby_id)
+            // Update host
+            if (lobby_id === game.host) {
+                game.update_host()
+                socket.to(game.host).emit("update_host")
+            }
+            // Update players
+            io.to(game_id).emit("players", game.get_player_names(), game.host_name)
         }
-        delete id_to_name[socket_id]
-        // Update players
-        io.to(game_id).emit("players", (await io.in(game_id).fetchSockets()).map((socket) => {
-            return id_to_name[socket.id] + (game_hosts[game_id] === socket.id ? " (host)" : "")
-        }))
     })
 
     // Request from host to start game
     socket.on("request_start_game", async () => {
-        if (socket.id !== game_hosts[game_id]) return
+        if (lobby_id !== game.host) return
         // Initialize game
-        game_players[game_id] = shuffleArray(game_players[game_id])
-        game_turns[game_id] = 0
-        game_words[game_id] = ""
+        game.save_all_players()
+        game.players = shuffleArray(game.players)
         io.to(game_id).emit("start_game")
     })
 
     // Join 1D game
-    socket.on("join_1d_game", async (name, _game_id) => {
+    socket.on("join_1d_game", async (_game_id, _lobby_id) => {
+        if (!games[_game_id]) return
         game_id = _game_id
-        if (!game_players[game_id]) return
-        socket_id = socket.id
+        game = games[game_id]
+        let player = game.get_player_by_lobby_id(_lobby_id)
+        if (!player) return
+        lobby_id = _lobby_id
+        player_id = socket.id
+        player.player_id = player_id
+        player_name = game.get_player_by_lobby_id(lobby_id).name
         socket.join(game_id)
-        id_to_name[socket.id] = name
         // Broadcast game start information
-        io.to(game_id).emit("players", game_players[game_id])
-        socket.emit("turn", game_turns[game_id])
+        io.to(game_id).emit("players", game.get_player_names(), game.host_name)
+        socket.emit("turn", game.turn)
         socket.emit("message", {
             username: "GameBot",
             time: Date.now(),
             text: `Welcome to game '${game_id}'`
         })
-        const current_player = game_players[game_id][game_turns[game_id] % game_players[game_id].length]
         socket.emit("message", {
             username: "GameBot",
             time: Date.now(),
-            text: `${current_player}, it's your turn!`
+            text: `${game.current_player.name}, it's your turn!`
         })
-        socket.emit("word", game_words[game_id])
+        socket.emit("word", game.word)
     })
 
     // Play letter in 1D game
@@ -135,86 +143,76 @@ io.on("connection", (socket) => {
         if (typeof letter !== "string") return
         if (letter.length !== 1) return
         if (!letter.match(/[a-z]/i) && !letter.match(/[A-Z]/i)) return
-        const current_player = game_players[game_id][game_turns[game_id] % game_players[game_id].length]
-        if (id_to_name[socket.id] !== current_player) return
+        if (lobby_id !== game.current_player.lobby_id) return
         if (position !== "front" && position !== "back") return
         letter = letter.toUpperCase()
         if (position === "front") {
-            // Letter forms a word
-            if (game_words[game_id].length > 2 && words[(letter + game_words[game_id]).toLowerCase()]) {
+            // Letter forms a word 
+            if (game.word.length > 2 && words.has((letter + game.word).toLowerCase())) {
                 socket.emit("message", {
                     username: "GameBot",
                     time: Date.now(),
-                    text: `${id_to_name[socket_id]}, ${letter + game_words[game_id]} is a word! Choose another letter.`
+                    text: `${player_name}, ${letter + game.word} is a word! Choose another letter.`
                 })
                 return
             }
-            game_words[game_id] = letter + game_words[game_id]
+            game.word = letter + game.word
         }
         if (position === "back") {
             // Letter forms a word
-            if (game_words[game_id].length > 2 && words[(game_words[game_id] + letter).toLowerCase()]) {
+            if (game.word.length > 2 && words.has((game.word + letter).toLowerCase())) {
                 socket.emit("message", {
                     username: "GameBot",
                     time: Date.now(),
-                    text: `${id_to_name[socket_id]}, ${game_words[game_id] + letter} is a word! Choose another letter.`
+                    text: `${player_name}, ${game.word + letter} is a word! Choose another letter.`
                 })
                 return
             }
-            game_words[game_id] = game_words[game_id] + letter
+            game.word = game.word + letter
         }
         // Broadcast move
-        io.to(game_id).emit("word", game_words[game_id])
+        io.to(game_id).emit("word", game.word)
         io.to(game_id).emit("message", {
             username: "GameBot",
             time: Date.now(),
-            text: `${id_to_name[socket.id]} played ${letter} at the ${position}.`
+            text: `${player_name} played ${letter} at the ${position}.`
         })
         // Next turn
-        game_turns[game_id]++
-        io.to(game_id).emit("turn", game_turns[game_id])
+        game.turn++
+        io.to(game_id).emit("turn", game.turn)
         io.to(game_id).emit("message", {
             username: "GameBot",
             time: Date.now(),
-            text: `${game_players[game_id][game_turns[game_id] % game_players[game_id].length]}, it's your turn!`
+            text: `${game.current_player.name}, it's your turn!`
         })
-        last_players[game_id] = socket.id
+        game.last_player = player_id
     })
 
     // Challenge in 1D game
     socket.on("challenge_1d", () => {
-        if (game_turns[game_id] < 2) return
-        const current_player = game_players[game_id][game_turns[game_id] % game_players[game_id].length]
-        if (id_to_name[socket.id] !== current_player) return
-        socket.to(last_players[game_id]).emit("challenge_word")
+        if (game.turn < 2) return
+        if (lobby_id !== game.current_player.lobby_id) return
+        socket.to(game.last_player.player_id).emit("challenge_word")
     })
 
     // Response to challenge in 1D game
     socket.on("challenge_word_response", (challenge_word) => {
         if (typeof challenge_word !== "string") return
         challenge_word = challenge_word.toUpperCase()
-        const current_player = game_players[game_id][game_turns[game_id] % game_players[game_id].length]
-        const last_player = id_to_name[last_players[game_id]]
         let loser = ""
-        if (words[challenge_word.toLowerCase()] && challenge_word.includes(game_words[game_id])) {
-            io.to(game_id).emit("challenge_outcome", `Since ${last_player}'s word '${challenge_word}' is in the English dictionary and contains the letters played '${game_words[game_id]}', ${current_player}'s challenge of ${last_player} was unsuccessful.`)
-            loser = current_player
+        if (words.has(challenge_word.toLowerCase()) && challenge_word.includes(game.word)) {
+            io.to(game_id).emit("challenge_outcome", `Since ${game.last_player.name}'s word '${challenge_word}' is in the English dictionary and contains the letters played '${game.word}', ${game.current_player.name}'s challenge of ${game.last_player.name} was unsuccessful.`)
+            loser = game.current_player
         } else {
-            io.to(game_id).emit("challenge_outcome", `Since ${last_player}'s word '${challenge_word}' is either not in the English dictionary or does not contain the letters played '${game_words[game_id]}', ${current_player}'s challenge of ${last_player} was successful.`)
-            loser = last_player
+            io.to(game_id).emit("challenge_outcome", `Since ${game.last_player.name}'s word '${challenge_word}' is either not in the English dictionary or does not contain the letters played '${game.word}', ${game.current_player.name}'s challenge of ${game.last_player.name} was successful.`)
+            loser = game.last_player
         }
-        if (!game_points[game_id]) {
-            game_points[game_id] = {}
-            for (const player of game_players[game_id]) {
-                game_points[game_id][player] = 0
+        for (const player of game.players) {
+            if (player.lobby_id !== loser.lobby_id) {
+                game.points[player.lobby_id] += 1
             }
         }
-        for (const player of game_players[game_id]) {
-            if (player !== loser) {
-                game_points[game_id][player] += 1
-            }
-        }
-        io.to(game_id).emit("game_over", game_points[game_id], loser, game_hosts[game_id]) 
+        io.to(game_id).emit("game_over", game.get_points_by_name(), loser.name, game.get_player_by_lobby_id(game.host).name) 
     })
 
     // Send message in chat
@@ -229,25 +227,25 @@ io.on("connection", (socket) => {
             return
         }
         io.to(game_id).emit("message", {
-            username: id_to_name[socket.id],
+            username: player_name,
             time: Date.now(),
             text: message,
         })
     })
 
     socket.on("next_game", () => {
-        if (id_to_name[socket.id] !== game_hosts[game_id]) return
+        if (lobby_id !== game.host) return
         // Initialize game
-        game_players[game_id] = shuffleArray(game_players[game_id])
-        game_turns[game_id] = 0
-        game_words[game_id] = ""
+        game.players = shuffleArray(game.players)
+        game.turn = 0
+        game.word = ""
         io.to(game_id).emit("message", {
             username: "GameBot",
             time: Date.now(),
             text: "Starting next game..."
         })
-        io.to(game_id).emit("word", game_words[game_id])
-        io.to(game_id).emit("turn", game_turns[game_id])
+        io.to(game_id).emit("word", game.word)
+        io.to(game_id).emit("turn", game.turn)
     })
 })
 

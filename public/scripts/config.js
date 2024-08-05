@@ -1,2 +1,2 @@
-const url = "https://word-ending-game.onrender.com"
-// const url = "http://localhost:3000"
+const URL = "https://word-ending-game.onrender.com"
+// const URL = "http://localhost:3000"

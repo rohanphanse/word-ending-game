@@ -14,7 +14,6 @@ document.addEventListener("DOMContentLoaded", () => {
     const enterName = document.getElementById("enter-name")
     // Lobby elements
     const enterLobby = document.getElementById("enter-lobby")
-    const lobbySection = document.getElementById("lobby-section")
     const lobby = document.getElementById("lobby")
     const lobbyText = document.getElementById("lobby-text")
     const startGame = document.getElementById("start-game")
@@ -23,13 +22,14 @@ document.addEventListener("DOMContentLoaded", () => {
     let is_host = true
     let game_type = "1d"
     let game_players = []
+    let player_name = ""
 
     function name_already_used(name) {
         for (const player of game_players) {
             if (name === player) {
                 return true
             }
-            if (player.includes(" (host)") && name === player.slice(player.length - " (host)".length)) {
+            if (player.includes(" (host)") && name === player.slice(0, player.length - " (host)".length)) {
                 return true
             }
         }
@@ -46,8 +46,8 @@ document.addEventListener("DOMContentLoaded", () => {
     })
 
     // Web sockets
-    let game_id = new URLSearchParams(window.location.search).get("g") || ""
-    const socket = io(url)
+    let game_id = new URLSearchParams(window.location.search).get("g") || "none"
+    const socket = io(URL)
     socket.on("connect", () => {
         socket.emit("request_welcome", game_id)
 
@@ -82,9 +82,17 @@ document.addEventListener("DOMContentLoaded", () => {
         })
     })
 
+    socket.on("update_host", () => {
+        inviteLink.value = `${URL}/?g=${game_id}`
+        inviteLinkSection.style.display = "flex"
+        welcomeMessage.innerText = `Welcome to game '${game_id}' hosted by ${player_name}!`
+        startGame.style.display = "flex"
+
+    })
+
     socket.on("game_id", (_game_id) => {
         game_id = _game_id
-        inviteLink.value = `${url}/?g=${game_id}`
+        inviteLink.value = `${URL}/?g=${game_id}`
     })
 
     socket.on("welcome", (game_host, _game_type) => {
@@ -104,7 +112,7 @@ document.addEventListener("DOMContentLoaded", () => {
         }
 
         socket.on("start_game", () => {
-            window.location.href = `${url}/play-${game_type}/?g=${game_id}`
+            window.location.href = `${URL}/play-${game_type}/?g=${game_id}`
         })
     })
 
@@ -121,7 +129,9 @@ document.addEventListener("DOMContentLoaded", () => {
             socket.emit("join_game", name, game_id, game_type)
             enterLobby.style.display = "none"
             enterName.disabled = true
+            sessionStorage.setItem("lobby_id", socket.id)
             sessionStorage.setItem("name", enterName.value)
+            player_name = name
             if (is_host) { 
                 inviteLinkSection.style.display = "flex"
                 startGame.style.display = "flex"
@@ -133,6 +143,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
     startGame.addEventListener("click", () => {
         socket.emit("request_start_game")
-        window.location.href = `${url}/play-${game_type}/?g=${game_id}`
+        window.location.href = `${URL}/play-${game_type}/?g=${game_id}`
     })
 })

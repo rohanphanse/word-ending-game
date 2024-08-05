@@ -25,15 +25,17 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     // Web sockets
-    const socket = io(url) 
+    const socket = io(URL) 
     const name = sessionStorage.getItem("name")
+    const lobby_id = sessionStorage.getItem("lobby_id")
     const game_id = new URLSearchParams(window.location.search).get("g")
     socket.on("connect", () => {
-        socket.emit("join_1d_game", name, game_id)
+        socket.emit("join_1d_game", game_id, lobby_id)
         let players
 
-        socket.on("players", (_players) => {
+        socket.on("players", (_players, _game_host) => {
             players = _players
+            game_host = _game_host
             let last_color = null
             lobby.innerHTML = ""
             for (const player of players) {
@@ -50,7 +52,14 @@ document.addEventListener("DOMContentLoaded", () => {
                 avatarIcon.style.border = `4px solid ${color}`
                 avatarIcon.innerText = player[0]
                 const avatarText = document.createElement("div")
-                avatarText.innerText = name === player ? `${player} (you)` : player
+                player_text = player
+                if (player === game_host) {
+                    player_text += " (host)"
+                }
+                if (player === name) {
+                    player_text += " (you)"
+                }
+                avatarText.innerText = player_text
                 avatarText.classList.add("avatar-text")
                 avatar.append(avatarIcon)
                 avatar.append(avatarText)
@@ -120,7 +129,7 @@ document.addEventListener("DOMContentLoaded", () => {
             renderMessage({
                 username: "GameBot",
                 time: Date.now(),
-                text: `You have been challenged by ${players[turn % players.length]}! The current letters are '${game_word}.' Enter your intended word here:`
+                text: `You have been challenged by ${players[turn % players.length]}! The current letters are '${game_word}.' Enter '/response' followed by your intended word here:`
             })
             challenge = true
         })
@@ -199,8 +208,8 @@ document.addEventListener("DOMContentLoaded", () => {
         event.preventDefault()
         const message = messageInput.value.trim()
         if (message) {
-            if (challenge) {
-                socket.emit("challenge_word_response", message)
+            if (challenge && message.startsWith("/response ")) {
+                socket.emit("challenge_word_response", message.slice("/response ".length))
                 challenge = false
             } else if (game_over && name === game_host && message.toLowerCase() === "/start") {
                 socket.emit("next_game")
