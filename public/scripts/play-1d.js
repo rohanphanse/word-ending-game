@@ -134,6 +134,13 @@ document.addEventListener("DOMContentLoaded", () => {
             challenge = true
         })
 
+        socket.on("challenge_all", () => {
+            placeLetter.style.display = "none"
+            challengeButton.style.display = "none"
+            clearInterval(interval)
+            clearInterval(wait_interval)
+        })
+
         socket.on("challenge_outcome", (outcome) => {
             renderMessage({
                 username: "GameBot",

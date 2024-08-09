@@ -80,7 +80,7 @@ io.on("connection", (socket) => {
         game_id = _game_id
         game = games[game_id]
         if (game.host && game.game_type) {
-            socket.emit("welcome", game.get_player_by_lobby_id(game.host).name, game.game_type)
+            socket.emit("welcome", game.host_name, game.game_type)
             socket.emit("players", game.get_player_names(), game.host_name)
         }
     })
@@ -192,6 +192,12 @@ io.on("connection", (socket) => {
     socket.on("challenge_1d", () => {
         if (game.turn < 2) return
         if (lobby_id !== game.current_player.lobby_id) return
+        io.to(game_id).except(game.last_player.player_id).emit("message", {
+            username: "GameBot",
+            time: Date.now(),
+            text: `${game.current_player.name} has challenged ${game.last_player.name}. Waiting for ${game.last_player.name}'s response...`
+        })
+        io.to(game_id).emit("challenge_all")
         socket.to(game.last_player.player_id).emit("challenge_word")
     })
 
@@ -222,7 +228,7 @@ io.on("connection", (socket) => {
             socket.emit("message", {
                 username: "GameBot",
                 time: Date.now(),
-                text: `${id_to_name[socket_id]}, your message was too long and could not be sent.`
+                text: `${player_name}, your message was too long and could not be sent.`
             })
             return
         }
@@ -244,8 +250,9 @@ io.on("connection", (socket) => {
             time: Date.now(),
             text: "Starting next game..."
         })
-        io.to(game_id).emit("word", game.word)
+        io.to(game_id).emit("players", game.get_player_names(), game.host_name)
         io.to(game_id).emit("turn", game.turn)
+        io.to(game_id).emit("word", game.word)
     })
 })
 
