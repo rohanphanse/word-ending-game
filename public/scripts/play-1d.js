@@ -94,8 +94,9 @@ document.addEventListener("DOMContentLoaded", () => {
             }
             turn = _turn
             turnText.innerText = `${players[turn % players.length]}'s turn`
+            clearInterval(interval)
+            clearInterval(wait_interval)
             if (name === players[turn % players.length]) {
-                clearInterval(wait_interval)
                 placeLetter.style.display = "flex"
                 if (turn >= 2) {
                     challengeButton.style.display = "flex"
@@ -137,6 +138,7 @@ document.addEventListener("DOMContentLoaded", () => {
         socket.on("challenge_all", () => {
             placeLetter.style.display = "none"
             challengeButton.style.display = "none"
+            turnText.innerText = ""
             clearInterval(interval)
             clearInterval(wait_interval)
         })
