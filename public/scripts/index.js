@@ -29,21 +29,26 @@ document.addEventListener("DOMContentLoaded", () => {
             if (name === player) {
                 return true
             }
-            if (player.includes(" (host)") && name === player.slice(0, player.length - " (host)".length)) {
-                return true
-            }
         }
         return false
     }
 
+    let gamemode_chosen = false;
     gamemode1D.addEventListener("click", () => {
+        if (gamemode_chosen) return
         gamemode1D.classList.add("gamemode-selected")
         gamemode2D.classList.remove("gamemode-selected")
     })
     gamemode2D.addEventListener("click", () => {
+        if (gamemode_chosen) return
         gamemode2D.classList.add("gamemode-selected")
         gamemode1D.classList.remove("gamemode-selected")
     })
+
+    setTimeout(() => {
+        gamemode1D.style.transition = "0.2s"
+        gamemode2D.style.transition = "0.2s"
+    }, 500)
 
     // Web sockets
     let game_id = new URLSearchParams(window.location.search).get("g") || "none"
@@ -51,29 +56,23 @@ document.addEventListener("DOMContentLoaded", () => {
     socket.on("connect", () => {
         socket.emit("request_welcome", game_id)
 
-        socket.on("players", (players) => {
-            let last_color = null
+        socket.on("players", (players, host_name, colors) => {
             lobby.innerHTML = ""
             console.log("players", players)
             if (players.length) {
                 lobbyText.style.display = "flex"
             }
             game_players = players
-            for (const player of players) {
+            for (let i = 0; i < players.length; i++) {
+                const player = players[i]
                 const avatar = document.createElement("div")
                 avatar.classList.add("avatar")
                 const avatarIcon = document.createElement("div")
                 avatarIcon.classList.add("avatar-icon")
-                const colors = ["blue", "yellow", "red", "green"]
-                let color
-                do {
-                    color = colors[Math.floor(Math.random() * colors.length)]
-                } while (color === last_color)
-                last_color = color
-                avatarIcon.style.border = `4px solid ${color}`
+                avatarIcon.style.border = `4px solid ${colors[i]}`
                 avatarIcon.innerText = player[0]
                 const avatarText = document.createElement("div")
-                avatarText.innerText = player
+                avatarText.innerText = player === host_name ? `${player} (host)` : player
                 avatarText.classList.add("avatar-text")
                 avatar.append(avatarIcon)
                 avatar.append(avatarText)
@@ -97,18 +96,17 @@ document.addEventListener("DOMContentLoaded", () => {
 
     socket.on("welcome", (game_host, _game_type) => {
         is_host = false
+        gamemode_chosen = true;
         game_type = _game_type
         welcomeMessage.innerText = `Welcome to game '${game_id}' hosted by ${game_host}!`
         enterLobby.innerText = "Join lobby"
-        gamemode1D.style.display = "none"
-        gamemode2D.style.display = "none"
         if (game_type === "1d") {
-            gamemode2D.style.display = "none"
             gamemode1D.classList.add("gamemode-selected")
+            gamemode2D.classList.remove("gamemode-selected")
         }
         if (game_type === "2d") {
-            gamemode1D.style.display = "none"
             gamemode2D.classList.add("gamemode-selected")
+            gamemode1D.classList.remove("gamemode-selected")
         }
 
         socket.on("start_game", () => {

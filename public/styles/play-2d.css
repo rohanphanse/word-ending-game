@@ -6,23 +6,95 @@
 }
 
 #letter-squares {
-    display: flex;
+    display: grid;
+    grid-template-columns: repeat(4, 60px);
+    grid-template-rows: repeat(4, 60px);
     margin-bottom: 20px;
 }
 
-.letter-square, .candidate-letter-square {
+#game-board {
+    position: relative;
+}
+
+.line-tag {
+    color: rgb(97, 97, 97);
+    margin-right: 15px;
+    transition-duration: 0.1s;
+}
+
+#R1 {
+    position: absolute;
+    left: -28px;
+    top: 15px;
+}
+
+#R2 {
+    position: absolute;
+    left: -28px;
+    top: 77px;
+}
+
+#R3 {
+    position: absolute;
+    left: -28px;
+    top: 137px;
+}
+
+#R4 {
+    position: absolute;
+    left: -28px;
+    top: 195px;
+}
+
+#R5 {
+    position: absolute;
+    left: -28px;
+    top: 255px;
+}
+
+#C1 {
+    position: absolute;
+    top: -25px;
+    left: 20px;
+}
+
+#C2 {
+    position: absolute;
+    top: -25px;
+    left: 80px;
+}
+
+#C3 {
+    position: absolute;
+    top: -25px;
+    left: 140px;
+}
+
+#C4 {
+    position: absolute;
+    top: -25px;
+    left: 200px;
+}
+
+#C5 {
+    position: absolute;
+    top: -25px;
+    left: 260px;
+}
+
+.letter-square, .candidate-letter-square, .invalid-letter-square {
     font-weight: 500;
     font-size: 24px;
     width: 50px;
     height: 50px;
     padding: 7px 10px;
-    border: 4px solid ;
+    border: 4px solid;
     display: flex;
     justify-content: center;
     align-items: center;
     margin: 0 5px;
     cursor: pointer;
-    transition-duration: 0.2s;
+    text-transform: uppercase;
 }
 
 .letter-square {
@@ -33,10 +105,14 @@
     border: 4px dotted rgb(193, 193, 193);
 }
 
+.invalid-letter-square {
+    border: 2px solid rgb(193, 193, 193);
+}
+
 #lobby {
     display: flex;
     margin-top: 5px;
-    margin-bottom: 20px;
+    margin-bottom: 40px;
 }
 
 .avatar {
@@ -66,6 +142,7 @@
 
 #game-buttons {
     display: flex;
+    margin-bottom: 60px;
 }
 
 #game-buttons * {
@@ -149,4 +226,53 @@
     border: none;
     border-right: 1px solid rgb(193, 193, 193);
     font-size: 1rem;
+}
+
+#words-section {
+    position: absolute;
+    height: 380px;
+    width: 300px;
+    border: 1px solid rgb(193, 193, 193);
+    top: 50%;
+    transform: translateY(-50%);
+    left: 50px;
+    display: flex;
+    flex-direction: column;
+    border-radius: 8px;
+    padding: 20px;
+    overflow-x: scroll;
+}
+
+.word {
+    display: flex;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.small-letter-square, .small-candidate-letter-square {
+    font-weight: 500;
+    font-size: 16px;
+    width: 25px;
+    height: 25px;
+    padding: 3px 5px;
+    border: 2px solid;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin: 0 3px;
+    cursor: pointer;
+    text-transform: uppercase;
+    flex-shrink: 0
+}
+
+.small-letter-square {
+    border: 2px solid rgb(193, 193, 193);
+}
+
+.small-candidate-letter-square {
+    border: 2px dotted rgb(193, 193, 193);
+}
+
+#challenge-button {
+    display: none;
 }

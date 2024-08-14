@@ -15,11 +15,42 @@
 
 <body>
     <div class = "center-page">
+        <div id = "words-section"></div>
+
         <div id = "container">
             <div class = "thin-text">Players:</div>
             <div id = "lobby"></div>
-            <div id = "letter-squares">
-                <div class = "candidate-letter-square" contenteditable="true"></div>
+            <div id = "game-board">
+                <div id = "R1" class = "line-tag">R1</div>
+                <div id = "R2" class = "line-tag">R2</div>
+                <div id = "R3" class = "line-tag">R3</div>
+                <div id = "R4" class = "line-tag">R4</div>
+                <div id = "C1" class = "line-tag">C1</div>
+                <div id = "C2" class = "line-tag">C2</div>
+                <div id = "C3" class = "line-tag">C3</div>
+                <div id = "C4" class = "line-tag">C4</div>
+                <div id = "letter-squares">
+                    <!-- Row 1 -->
+                    <div class = "invalid-letter-square"></div>
+                    <div class = "invalid-letter-square"></div>
+                    <div class = "invalid-letter-square"></div>
+                    <div class = "invalid-letter-square"></div>
+                    <!-- Row 2 -->
+                    <div class = "invalid-letter-square"></div>
+                    <div class = "candidate-letter-square" contenteditable="true"></div>
+                    <div class = "invalid-letter-square"></div>
+                    <div class = "invalid-letter-square"></div>
+                    <!-- Row 3 -->
+                    <div class = "invalid-letter-square"></div>
+                    <div class = "invalid-letter-square"></div>
+                    <div class = "invalid-letter-square"></div>
+                    <div class = "invalid-letter-square"></div>
+                    <!-- Row 4 -->
+                    <div class = "invalid-letter-square"></div>
+                    <div class = "invalid-letter-square"></div>
+                    <div class = "invalid-letter-square"></div>
+                    <div class = "invalid-letter-square"></div>
+                </div>
             </div>
             <div id = "turn-text">'s turn</div>
             <div id = "game-buttons">

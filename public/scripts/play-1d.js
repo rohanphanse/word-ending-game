@@ -33,23 +33,23 @@ document.addEventListener("DOMContentLoaded", () => {
         socket.emit("join_1d_game", game_id, lobby_id)
         let players
 
+        let player_colors = []
+        socket.on("colors", (colors) => {
+            player_colors = colors
+        })
+
         socket.on("players", (_players, _game_host) => {
             players = _players
             game_host = _game_host
             let last_color = null
             lobby.innerHTML = ""
-            for (const player of players) {
+            for (let i = 0; i < players.length; i++) {
+                const player = players[i]
                 const avatar = document.createElement("div")
                 avatar.classList.add("avatar")
                 const avatarIcon = document.createElement("div")
                 avatarIcon.classList.add("avatar-icon")
-                const colors = ["blue", "yellow", "red", "green"]
-                let color
-                do {
-                    color = colors[Math.floor(Math.random() * colors.length)]
-                } while (color === last_color)
-                last_color = color
-                avatarIcon.style.border = `4px solid ${color}`
+                avatarIcon.style.border = `4px solid ${player_colors[i]}`
                 avatarIcon.innerText = player[0]
                 const avatarText = document.createElement("div")
                 player_text = player
