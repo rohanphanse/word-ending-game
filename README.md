@@ -7,6 +7,7 @@ Goal: Keep playing letters that are part of a valid word without forming the wor
 # Access
 
 Main URL: https://word-ending-game.onrender.com
+Backup URL: https://word-ending-game-2.onrender.com
 
 # Overview of 1D Game Mode
 
